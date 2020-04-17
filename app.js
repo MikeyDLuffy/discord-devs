@@ -8,22 +8,27 @@ var passport = require('passport');
 var LocalStrategy = require('passport-local').Strategy;
 var bodyParser = require('body-parser');
 var flash = require('connect-flash');
-var routes = require('./routes/index');
 var mongoose = require('mongoose');
 
-//crate app 
+//create app 
 var app = express();
-
-//define index route
-var routes = require('./routes/index');
-
-//header security
-app.use(helmet());
 
 //conect to the mongo database
 mongoose.connect(process.env.DB_HOST, {useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false, useCreateIndex:true});
 var db = mongoose.connection;
 
+db.on('error', console.error.bind(console, 'connection error'));
+db.once('open', function () {
+  console.log('db is connected');
+});
+
+
+//define index route
+var routes = require('./routes/index');
+var user = require('./routes/user');
+
+//header security
+app.use(helmet());
 
 //view engine
 
@@ -66,10 +71,10 @@ app.use(function (req, res, next) {
 //});
 
 //define routes
-var app = express();
-var routes = require('./routes/index');
+app.use('/', routes);
+app.use('/user', user);
 
-if(process.env.NODE_ENV == 'dev'){
+if (process.env.NODE_ENV == 'dev'){
 	PORT = 3000; }
 else {
 	PORT = process.env.PORT;
@@ -77,3 +82,5 @@ else {
 
 app.listen(PORT);
 console.log('server started on port:' + PORT);
+
+
