@@ -13,6 +13,7 @@ var mongoose = require('mongoose');
 var nodemailer = require('nodemailer');
 var bcrypt = require('bcryptjs');
 var crypto = require('crypto');
+var QRCode = require('qrcode');
 const mailGun = require('nodemailer-mailgun-transport');
 var { User, Token } = require('../models/User');
 
@@ -65,7 +66,7 @@ router.post('/register', [
 
 	if(!result.isEmpty()) {
 		//if there are errors render the register page again and show the errors
-		res.render('index', {
+		res.render('login', {
 			errors:errors,
 			email:email,
 			password:password,
@@ -94,21 +95,48 @@ router.post('/register', [
 							else {
 								//create a new verification token
 								var token = new Token({
-								_userId: newUser._id, token: crypto.randomBytes(16).toString('hex')});
+								_userId: newUser._id, token: crypto.randomBytes(16).toString('hex')
+								});
+
 								//save the verification token this will get input into QR code
 								token.save(function(err){
 									if(err){
 										return res.status(500).send({msg:err.message});
 									}
 									console.log('User Added');
+									
+									//CHANGE PORT VALUE TO YOUR LOCAL HOSTS IP AND PORT NUMBER IN ORDER TO ACCESS QR CONFIRMATION PAGE FROM YOUR PHONE, MUST BE ON THE SAME NETWORK
+									port = req.headers.host
+									
 
-									var confirmationLink = '<a href=http:\/\/' + req.headers.host + '\/user/confirmationPage?id=' + token.token + '> Confirm your email here </a>';
+									var confirmationLink = '<a href=http:\/\/' + port + '\/user/confirmationPage?id=' + token.token + '> Confirm your email here </a>';
+									
+									//create QR
+									QRCode.toFile('./public/img/qrs/qr.png',confirmationLink , function (err) {
+		  								if (err) {
+		  									console.log('qr png was not created');
+		  									console.log(err);
+		  								}
+		  								else {
+		  									console.log('qr png created');
+		  								}
+									});
+
+									
+
 									var mailOptions = {
+										
 										from: 'confirmation@donotreply.com',
 										to: email,
 										subject: 'Account verification',
-										html:'<p>Hello,\n\n' + 'Please verify your account by clicking the link' + confirmationLink,
-									}
+										html:'<p>Hello,\n\n' + 'Please verify your account by clicking the link' + confirmationLink + '\n\n' + '<img src="uniqueqr@qr.example"/>',
+										//having issues with embedding the qr image into the email...opened question on stackoverflow.
+										/*attachments: [{
+											filename: 'qr.png',
+											path: '../discord-devs/public/img/qrs/qr.png',
+											cid: 'uniqueqr@qr.example'
+										}],*/
+									};
 
 									mailTransporter.sendMail(mailOptions, function(err,info){
 										if (err){

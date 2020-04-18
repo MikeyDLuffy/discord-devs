@@ -64,11 +64,10 @@ app.use(function (req, res, next) {
 });
 
 //Access Globals, not using yet
-//app.get('*', function(req, res, next){
-  //res.locals.user = req.user || null;
-  //next();
-
-//});
+app.get('*', function(req, res, next){
+  res.locals.user = req.user || null;
+  next();
+});
 
 //define routes
 app.use('/', routes);
