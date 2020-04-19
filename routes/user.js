@@ -10,6 +10,7 @@ var LocalStrategy = require('passport-local').Strategy;
 var bodyParser = require('body-parser');
 var flash = require('connect-flash');
 var mongoose = require('mongoose');
+var mongojs = require('mongojs');
 var nodemailer = require('nodemailer');
 var bcrypt = require('bcryptjs');
 var crypto = require('crypto');
@@ -235,36 +236,32 @@ passport.deserializeUser(function(id, done) {
 });
 
 
-//passport local strategy
-passport.use('user', new LocalStrategy(
-	function(email, passw, done){
+//passport local strategy  *the function says email, but the login form must have the name 'username'*
+passport.use('user',new LocalStrategy(
+	function(email, password, done){
 		User.findOne({email: email}, function(err, user){
 			if(err) {
 				return done(err);
 			}
-			else if(!user){
-				console.log('couldnt find user');
+			if(!user){
 				return done(null, false, {message: 'Incorrect username'});
 			}
-			else if(!user.isVerified){
+			if(!user.isVerified){
 					console.log('user not verified');
 					return done(null, false, {message: 'Your account has not been verified.'}); 
 			}
 			else {
-					bcrypt.compare(passw, user.password, function(err, isMatch){
+					bcrypt.compare(password, user.password, function(err, isMatch){
 					if(err) {
 						return done(err);
 					}
 
 					if(isMatch){
-						console.log('passwords match');
 						return done(null, user);
-						failureFlash			
+									
 					} 
 					else {
 						return done(null, false, {message: 'Incorrect password'});
-						console.log(passw);
-						console.log(user.password);
 					}
 				});
 			}
@@ -290,7 +287,7 @@ router.post('/login',
 		console.log('Auth Successfull');
 		res.cookies('user', user, {expire: 360000 + Date.now()}).send('cookie set');
 		console.log(document.cookie);
-		res.redirect('/user/profile');
+		res.redirect('./user/profile');
 	}
 );
 

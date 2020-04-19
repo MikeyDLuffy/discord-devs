@@ -45,3 +45,15 @@
   border-radius: 4px;
   text-align: center; 
 }
+
+
+.transactionList {
+  list-style: none;
+  color: gray;
+  border-color:black;
+  padding: 15px;
+  margin-bottom: 20px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+
+}
