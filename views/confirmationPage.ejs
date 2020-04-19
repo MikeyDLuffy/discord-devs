@@ -1,31 +1,6 @@
 <%- include('includes/header') %>
 
-<% if (locals.errors) { %>
-            <% errors.forEach(function(error){ %>
-                  <div class="messageserror"><%= error.msg %></div>
-           <% }) %>
-      <% } %>
-      <%- messages() %>
-
-<div class="w3-row-padding w3-margin-bottom">
-  
-   <div class="w3-third w3-hide-small">
-    <div class="w3-container"> </div>
-   </div>
-
-  <div class="w3-third">
-    
-     <div class="w3-card-4 orderCard w3-animate-bottom w3-center"> 
-       <h5> Thanks for confirming your email! Welcome! </h5>
-      </div>
-
-   </div>
-
-  <div class="w3-third w3-hide-small">
-    <div class="w3-container"> </div>
-  </div>
-
-</div>
+<%- messages() %>
 
 
 <%- include('includes/footer') %>

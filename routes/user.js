@@ -16,6 +16,7 @@ var crypto = require('crypto');
 var QRCode = require('qrcode');
 const mailGun = require('nodemailer-mailgun-transport');
 var { User, Token } = require('../models/User');
+var Transaction = require('../models/Transaction');
 
 //conect to the mongo database
 mongoose.connect(process.env.DB_HOST, {useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false, useCreateIndex:true});
@@ -31,12 +32,23 @@ const mailAuth = {
 
 const mailTransporter = nodemailer.createTransport(mailGun(mailAuth));
 
+//get user profile
+router.get('/profile', ensureAuthenticated, function(req,res){
+	res.render('profile');
+});
+
+//make sure the user is authenticated
+function ensureAuthenticated(req, res, next){
+	if(req.isAuthenticated()){
+		return next();
+	}
+	res.redirect('/login');
+}
 
 //email confirmation
 router.get('/confirmationPage', function(req,res){
 	res.render('confirmationPage');
 })
-
 
 //post registration
 router.post('/register', [
@@ -66,7 +78,7 @@ router.post('/register', [
 
 	if(!result.isEmpty()) {
 		//if there are errors render the register page again and show the errors
-		res.render('login', {
+		res.render('register', {
 			errors:errors,
 			email:email,
 			password:password,
@@ -106,10 +118,10 @@ router.post('/register', [
 									console.log('User Added');
 									
 									//CHANGE PORT VALUE TO YOUR LOCAL HOSTS IP AND PORT NUMBER IN ORDER TO ACCESS QR CONFIRMATION PAGE FROM YOUR PHONE, MUST BE ON THE SAME NETWORK
-									port = req.headers.host
+									port = /*'10.0.0.232:3000'*/req.headers.host
 									
 
-									var confirmationLink = '<a href=http:\/\/' + port + '\/user/confirmationPage?id=' + token.token + '> Confirm your email here </a>';
+									var confirmationLink = '<a href=http:\/\/' + port + '\/user/confirmation?token=' + token.token + '> Confirm your email here </a>';
 									
 									//create QR
 									QRCode.toFile('./public/img/qrs/qr.png',confirmationLink , function (err) {
@@ -122,20 +134,11 @@ router.post('/register', [
 		  								}
 									});
 
-									
-
 									var mailOptions = {
-										
 										from: 'confirmation@donotreply.com',
 										to: email,
 										subject: 'Account verification',
-										html:'<p>Hello,\n\n' + 'Please verify your account by clicking the link' + confirmationLink + '\n\n' + '<img src="uniqueqr@qr.example"/>',
-										//having issues with embedding the qr image into the email...opened question on stackoverflow.
-										/*attachments: [{
-											filename: 'qr.png',
-											path: '../discord-devs/public/img/qrs/qr.png',
-											cid: 'uniqueqr@qr.example'
-										}],*/
+										html:'<p>Hello,\n\n' + 'Please verify your account by clicking the link' + confirmationLink + '\n\n' + '</p>'		
 									};
 
 									mailTransporter.sendMail(mailOptions, function(err,info){
@@ -165,7 +168,7 @@ router.post('/register', [
 								"location" : "body"
 							};
 						errors.push(err);
-						res.render('login', {errors: errors});
+						res.render('register', {errors: errors});
 					}
 				});
 			});	
@@ -173,6 +176,131 @@ router.post('/register', [
 	}
 
 
+});
+
+//Confirmation Get
+
+router.get('/confirmation',
+	function(req, res){
+		Token.findOne({ token: req.query.token }, function (err, token) {
+        if (!token) { 
+        	req.flash('error', 'No token found, it may have expired');
+	        res.redirect('/user/confirmationPage');
+    	}
+ 
+        else {
+        	// If we found a token, find a matching user
+	        User.findOne({ _id: token._userId }, function (err, user) {
+	            if (!user) {
+	            	req.flash('error', 'No user found');
+	                	res.redirect('/user/confirmationPage');
+	            }
+	            else if (user.isVerified){
+	            	req.flash('error', 'User is already verified <a href="/login"> register </a>');
+	                res.redirect('/user/confirmationPage');
+	            }
+	 
+	            // Verify and save the user
+	            else {
+	            	user.isVerified = true;
+	            	user.save(function (err) {
+		                if (err) { 
+		                	req.flash('error', 'Sorry, something went wrong, we will yell at Dan');
+		                	res.redirect('/user/confirmationPage'); 
+		                }
+		                else{
+			                req.flash('success', 'You are verified, welcome! <a href="/login"> login </a>');
+			                res.redirect('/user/confirmationPage');
+		            	}
+	            	});
+	            }
+	            
+	        });
+        }	
+    	});
+	}
+);
+
+
+
+//Serialize 
+passport.serializeUser(function(user, done) {
+  done(null, user._id);
+});
+
+passport.deserializeUser(function(id, done) {
+	User.findOne({_id: mongoose.Types.ObjectId(id)}, function(err, user){
+		done(err, user);
+	});
+});
+
+
+//passport local strategy
+passport.use('user', new LocalStrategy(
+	function(email, passw, done){
+		User.findOne({email: email}, function(err, user){
+			if(err) {
+				return done(err);
+			}
+			else if(!user){
+				console.log('couldnt find user');
+				return done(null, false, {message: 'Incorrect username'});
+			}
+			else if(!user.isVerified){
+					console.log('user not verified');
+					return done(null, false, {message: 'Your account has not been verified.'}); 
+			}
+			else {
+					bcrypt.compare(passw, user.password, function(err, isMatch){
+					if(err) {
+						return done(err);
+					}
+
+					if(isMatch){
+						console.log('passwords match');
+						return done(null, user);
+						failureFlash			
+					} 
+					else {
+						return done(null, false, {message: 'Incorrect password'});
+						console.log(passw);
+						console.log(user.password);
+					}
+				});
+			}
+		});
+	}
+));
+
+
+
+
+
+
+
+//login post
+router.post('/login', 
+	passport.authenticate('user', 
+		{ 
+			successRedirect: '../user/profile',
+		  	failureRedirect: '../login',
+			failureFlash: 'Invalid Username Or Password',
+		}
+	), function(req,res){
+		console.log('Auth Successfull');
+		res.cookies('user', user, {expire: 360000 + Date.now()}).send('cookie set');
+		console.log(document.cookie);
+		res.redirect('/user/profile');
+	}
+);
+
+//logout post
+router.get('/logout', function(req, res){
+	req.logout();
+	req.flash('success','You have logged out');
+	res.clearCookie('user');
+	console.log('cookie cleared');
+	res.redirect('/login');
 });
 
 
