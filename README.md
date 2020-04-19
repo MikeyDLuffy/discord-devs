@@ -2,10 +2,10 @@
 repo for discord coding servers current project
 
 goal: create a reusable html/js form that will:
-  1. generate a confirmation link
-  2. generate a secret pin number and email it to submitter
-  3. house the confirmation link and hashed pin within a QR code
-  4. confirm user within mongodb when qr is scanned and pin is input
+  1. generate a transaction token
+  2. generate a secret pin number and email it to creator of the transaction
+  3. house the transaction token and hashed pin within a QR code
+  4. mark transaction complete within mongodb complete when qr is scanned and pin is input... eventually switch the simple transactions to ethereum contracts
   
  tools:
  nodejs, express, mongodb, w3.css (simple styling)
