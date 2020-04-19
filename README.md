@@ -1,14 +1,10 @@
 # discord-devs
 repo for discord coding servers current project
 
-goal: create a reusable html/js form that will:
-  1. generate a transaction token
-  2. generate a secret pin number and email it to creator of the transaction
-  3. house the transaction token and hashed pin within a QR code
-  4. mark transaction complete within mongodb complete when qr is scanned and pin is input... eventually switch the simple transactions to ethereum contracts
+Web app to create and add solidity contracts to EVM of your choice.
   
  tools:
- nodejs, express, mongodb, w3.css (simple styling)
+ nodejs, express, mongodb, w3.css (simple styling), truffle, ganache, drizzle
  
 Getting started:
   1. Clone repo (git clone https://github.com/michaeldurocher/discord-devs.git from your termnial/command line)
@@ -34,6 +30,6 @@ Getting started:
   6. On line 109 of the user.js file, set the 'port' value equal to the localhost machines ip address if you want to access the confirmation page from your phone by scanning the qr code. (must be on the same network) leave as is to access confirmation page from your local machine.
 
 to do:
-  1. set up user 'createTransaction' route
-  2. Generate secret pin and attach to transaction
-  3. list open and closed transactions on user profile page
+  1. set up Truffle (nodejs ethereum/solidity compiler), Ganache (local blockchain for development), and Drizzle, front end for  Block chain transactions  
+  2. create new transactions from profile page
+  3. list transactions on user profile page
